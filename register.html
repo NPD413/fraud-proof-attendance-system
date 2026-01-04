@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration - FREE Version</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .form-group { margin-bottom: 25px; }
+        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; }
+        input[type="text"], input[type="email"] {
+            width: 100%;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        input:focus { outline: none; border-color: #667eea; }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 10px 5px;
+        }
+        button:hover { transform: scale(1.05); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .video-container {
+            position: relative;
+            max-width: 640px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #000;
+        }
+        video { width: 100%; height: auto; display: block; }
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 16px;
+            color: #555;
+            font-weight: 600;
+        }
+        .captured-faces {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .face-thumb {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            border: 3px solid #4caf50;
+            object-fit: cover;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50 0%, #45a049 100%);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        .success-box {
+            background: #4caf50;
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn-secondary { background: linear-gradient(135deg, #6c757d 0%, #495057 100%); }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Student Registration (FREE)</h1>
+        
+        <!-- Step 1 -->
+        <div id="step1" class="step active">
+            <h2>Step 1: Enter Your Details</h2>
+            <div class="form-group">
+                <label>Student ID *</label>
+                <input type="text" id="studentId" placeholder="e.g., STU001">
+            </div>
+            <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" id="name" placeholder="e.g., Dhara">
+            </div>
+            <div class="form-group">
+                <label>Email *</label>
+                <input type="email" id="email" placeholder="e.g., dhara@example.com">
+            </div>
+            <button onclick="goToStep2()">Next: Capture Photos</button>
+        </div>
+        
+        <!-- Step 2 -->
+        <div id="step2" class="step">
+            <h2>Step 2: Capture 3 Face Photos</h2>
+            
+            <div class="info-box">
+                📸 <strong>Tips:</strong> Take photos from different angles (front, slight left, slight right)
+            </div>
+            
+            <div class="status" id="status">Loading camera...</div>
+            
+            <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress">0/3</div>
+            </div>
+            
+            <div class="captured-faces" id="captured-faces"></div>
+            
+            <div style="text-align: center;">
+                <button id="captureBtn" onclick="captureFace()">📸 Capture Photo</button>
+                <button class="btn-secondary" onclick="goToStep1()">Back</button>
+            </div>
+        </div>
+        
+        <!-- Step 3 -->
+        <div id="step3" class="step">
+            <div class="success-box">
+                <h2>✅ Registration Complete!</h2>
+                <p><strong>Student ID:</strong> <span id="registered-id"></span></p>
+                <p><strong>Name:</strong> <span id="registered-name"></span></p>
+                <p style="margin-top: 15px;">Photos saved successfully!</p>
+                <p style="font-size: 14px; margin-top: 10px;">You can now mark attendance.</p>
+            </div>
+            <div style="text-align: center;">
+                <button onclick="window.location.href='facedetector.html'">Go to Attendance System</button>
+                <button class="btn-secondary" onclick="location.reload()">Register Another Student</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMYXUdtt2I_xbasZxoNfcMI0bm5HYHgnA",
+            authDomain: "smart-attendance-system-f600b.firebaseapp.com",
+            projectId: "smart-attendance-system-f600b",
+            storageBucket: "smart-attendance-system-f600b.firebasestorage.app",
+            messagingSenderId: "881067387212",
+            appId: "1:881067387212:web:5b5b99461a4d15804607e9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        console.log("✅ Firebase initialized (Firestore only - FREE)");
+
+        let video, studentData = {}, capturedPhotos = [];
+        const TOTAL_PHOTOS = 3;
+
+        async function goToStep2() {
+            const studentId = document.getElementById('studentId').value.trim().toUpperCase();
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!studentId || !name || !email) {
+                alert("❌ Please fill all fields!");
+                return;
+            }
+            
+            try {
+                const doc = await db.collection('students').doc(studentId).get();
+                if (doc.exists) {
+                    alert(`❌ Student ID "${studentId}" already exists! Use a different ID.`);
+                    return;
+                }
+            } catch (error) {
+                console.error(error);
+            }
+            
+            studentData = { studentId, name, email };
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+            await startCamera();
+        }
+
+        async function startCamera() {
+            try {
+                video = document.getElementById('video');
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 } 
+                });
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    document.getElementById('status').textContent = `✅ Camera ready! Capture ${TOTAL_PHOTOS} photos.`;
+                };
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').textContent = "❌ Camera access denied!";
+                alert("Please allow camera access!");
+            }
+        }
+
+        async function captureFace() {
+            if (capturedPhotos.length >= TOTAL_PHOTOS) {
+                alert(`Already captured ${TOTAL_PHOTOS} photos!`);
+                return;
+            }
+            
+            document.getElementById('captureBtn').disabled = true;
+            document.getElementById('status').textContent = "📸 Capturing...";
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            // Compress to smaller size for Firestore
+            const smallCanvas = document.createElement('canvas');
+            smallCanvas.width = 300;
+            smallCanvas.height = 300;
+            smallCanvas.getContext('2d').drawImage(video, 0, 0, 300, 300);
+            const compressedPhoto = smallCanvas.toDataURL('image/jpeg', 0.7);
+            
+            capturedPhotos.push(compressedPhoto);
+            
+            const img = document.createElement('img');
+            img.src = compressedPhoto;
+            img.className = 'face-thumb';
+            document.getElementById('captured-faces').appendChild(img);
+            
+            const progress = (capturedPhotos.length / TOTAL_PHOTOS) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+            document.getElementById('progress').textContent = `${capturedPhotos.length}/${TOTAL_PHOTOS}`;
+            
+            if (capturedPhotos.length >= TOTAL_PHOTOS) {
+                document.getElementById('status').textContent = "✅ All photos captured! Saving...";
+                await saveToFirestore();
+            } else {
+                document.getElementById('status').textContent = `✅ ${capturedPhotos.length}/${TOTAL_PHOTOS} captured! ${TOTAL_PHOTOS - capturedPhotos.length} more needed.`;
+            }
+            
+            document.getElementById('captureBtn').disabled = false;
+        }
+
+        async function saveToFirestore() {
+            try {
+                document.getElementById('status').textContent = "💾 Saving to database...";
+                
+                // Save photos directly in Firestore (FREE - no Storage needed!)
+                await db.collection('students').doc(studentData.studentId).set({
+                    name: studentData.name,
+                    email: studentData.email,
+                    photos: capturedPhotos, // Store compressed photos
+                    photoCount: capturedPhotos.length,
+                    faceDescriptors: [], // Can be added later
+                    registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    storageType: 'firestore-base64'
+                });
+                
+                console.log("✅ Student registered:", studentData.studentId);
+                
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+                
+                document.getElementById('step2').classList.remove('active');
+                document.getElementById('step3').classList.add('active');
+                document.getElementById('registered-id').textContent = studentData.studentId;
+                document.getElementById('registered-name').textContent = studentData.name;
+                
+            } catch (error) {
+                console.error("Save error:", error);
+                alert("❌ Failed to save: " + error.message);
+                document.getElementById('status').textContent = "❌ Save failed!";
+            }
+        }
+
+        function goToStep1() {
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            capturedPhotos = [];
+            document.getElementById('captured-faces').innerHTML = '';
+            document.getElementById('progress').style.width = '0%';
+            document.getElementById('progress').textContent = '0/3';
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step1').classList.add('active');
+        }
+    </script>
+</body>
+</html>

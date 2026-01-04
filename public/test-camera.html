@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Simple Camera Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        #container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border: 3px solid #333;
+            border-radius: 5px;
+            background: black;
+            display: block;
+            margin: 20px auto;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .loading { background: #FFF3CD; color: #856404; }
+        .success { background: #D4EDDA; color: #155724; }
+        .error { background: #F8D7DA; color: #721C24; }
+        #log {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .log-item {
+            padding: 3px 0;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1 style="text-align: center;">🎥 Simple Camera Test</h1>
+        
+        <div id="status" class="loading">Click button to start camera</div>
+        
+        <video id="video" autoplay playsinline muted></video>
+        
+        <button onclick="startCamera()">Start Camera</button>
+        
+        <div id="log">
+            <div class="log-item">📋 Log will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const emoji = type === 'error' ? '❌' : type === 'success' ? '✅' : '📝';
+            const item = document.createElement('div');
+            item.className = 'log-item';
+            item.innerHTML = `${emoji} ${time} - ${message}`;
+            log.appendChild(item);
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type = 'loading') {
+            status.textContent = message;
+            status.className = type;
+        }
+        
+        async function startCamera() {
+            try {
+                addLog('Starting camera initialization...');
+                updateStatus('🔄 Requesting camera access...', 'loading');
+                
+                // Check if getUserMedia is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('getUserMedia not supported in this browser');
+                }
+                
+                addLog('Browser supports getUserMedia');
+                addLog('Requesting video stream...');
+                
+                // Request camera access
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: 640,
+                        height: 480
+                    },
+                    audio: false
+                });
+                
+                addLog('✅ Camera permission granted!', 'success');
+                addLog('Stream obtained: ' + stream.id);
+                
+                // Get video tracks
+                const videoTracks = stream.getVideoTracks();
+                addLog('Video tracks: ' + videoTracks.length);
+                
+                if (videoTracks.length > 0) {
+                    addLog('Camera label: ' + videoTracks[0].label);
+                    addLog('Camera settings: ' + JSON.stringify(videoTracks[0].getSettings()));
+                }
+                
+                // Attach stream to video element
+                video.srcObject = stream;
+                addLog('Stream attached to video element');
+                
+                // Wait for video to load
+                video.onloadedmetadata = () => {
+                    addLog('Video metadata loaded');
+                    addLog('Video dimensions: ' + video.videoWidth + 'x' + video.videoHeight);
+                };
+                
+                video.onplay = () => {
+                    addLog('✅ Video is playing!', 'success');
+                    updateStatus('✅ Camera is working!', 'success');
+                };
+                
+                addLog('✅ Camera initialization complete!', 'success');
+                
+            } catch (error) {
+                addLog('❌ ERROR: ' + error.name, 'error');
+                addLog('❌ Message: ' + error.message, 'error');
+                
+                let helpMessage = '';
+                
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    helpMessage = '❌ Camera permission denied. Please allow camera access in browser settings.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    helpMessage = '❌ No camera found. Please connect a camera.';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    helpMessage = '❌ Camera is being used by another application.';
+                } else if (error.name === 'OverconstrainedError') {
+                    helpMessage = '❌ Camera doesn\'t support requested settings.';
+                } else if (error.name === 'SecurityError') {
+                    helpMessage = '❌ Security error. Are you using HTTPS or localhost?';
+                } else {
+                    helpMessage = '❌ Unknown error: ' + error.message;
+                }
+                
+                updateStatus(helpMessage, 'error');
+                addLog(helpMessage, 'error');
+                
+                // Additional debugging info
+                addLog('🔍 Current URL: ' + window.location.href);
+                addLog('🔍 Protocol: ' + window.location.protocol);
+                addLog('🔍 Is localhost: ' + (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
+            }
+        }
+        
+        // Log initial environment info
+        addLog('Browser: ' + navigator.userAgent);
+        addLog('Protocol: ' + window.location.protocol);
+        addLog('Hostname: ' + window.location.hostname);
+        addLog('getUserMedia available: ' + (!!navigator.mediaDevices?.getUserMedia));
+    </script>
+</body>
+</html>

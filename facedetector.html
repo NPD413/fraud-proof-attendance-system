@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attendance System - Face Recognition</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- MediaPipe Face Detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        /* Student ID Input Section */
+        #id-input-section {
+            text-align: center;
+        }
+        
+        .id-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            margin: 30px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px 20px;
+            font-size: 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+            margin: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Camera Section */
+        #camera-container {
+            text-align: center;
+        }
+        
+        .video-wrapper {
+            position: relative;
+            max-width: 640px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #000;
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .status-message {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        .status-message.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 2px solid #1976d2;
+        }
+        
+        .status-message.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border: 2px solid #388e3c;
+        }
+        
+        .status-message.error {
+            background: #ffebee;
+            color: #d32f2f;
+            border: 2px solid #d32f2f;
+        }
+        
+        .status-message.warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border: 2px solid #f57c00;
+        }
+        
+        /* Success Section */
+        #success-container {
+            text-align: center;
+        }
+        
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: scaleIn 0.5s ease-out;
+        }
+        
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+        
+        .success-box {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+        }
+        
+        .success-box h2 {
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+        
+        .success-details {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .success-details p {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            text-align: left;
+        }
+        
+        .info-box h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .info-box ul {
+            color: #856404;
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            button {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Fraud-Proof Attendance System<span class="badge">MediaPipe Powered</span></h1>
+        <p class="subtitle">Face Recognition + Liveness Detection + Location Tracking</p>
+        
+        <!-- Section 1: Student ID Input -->
+        <div id="id-input-section" class="section active">
+            <div class="id-icon">🆔</div>
+            <h2>Enter Your Student ID</h2>
+            
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="student-id-input" 
+                    placeholder="e.g., STU001"
+                    autocomplete="off"
+                    maxlength="20"
+                />
+            </div>
+            
+            <div class="status-message info" id="status-message">
+                Enter your Student ID to begin attendance
+            </div>
+            
+            <button id="verify-id-btn" onclick="verifyStudentId()">
+                Continue to Face Verification
+            </button>
+            
+            <div class="info-box">
+                <h3>📋 How it works:</h3>
+                <ul>
+                    <li>Enter your registered Student ID</li>
+                    <li>Camera will open for face verification</li>
+                    <li>MediaPipe detects your face with 6 key landmarks</li>
+                    <li>Blink naturally for liveness check</li>
+                    <li>Location will be recorded</li>
+                    <li>Attendance marked securely!</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Section 2: Camera & Face Detection -->
+        <div id="camera-container" class="section">
+            <h2>📸 Face Verification</h2>
+            
+            <div class="status-message info" id="camera-status">
+                Initializing MediaPipe Face Detection...
+            </div>
+            
+            <div class="video-wrapper">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="canvas-overlay"></canvas>
+            </div>
+            
+            <div class="info-box">
+                <h3>👤 Instructions:</h3>
+                <ul>
+                    <li>Position your face in the center</li>
+                    <li>Remove glasses if possible</li>
+                    <li>Ensure good lighting</li>
+                    <li>Wait for green bounding box</li>
+                    <li>Blink naturally when prompted</li>
+                </ul>
+            </div>
+            
+            <button id="mark-attendance-btn" onclick="startAttendanceCheck()">
+                🎯 Start Attendance Check
+            </button>
+            
+            <button class="btn-secondary" onclick="resetForNewStudent()">
+                ⬅️ Back
+            </button>
+        </div>
+        
+        <!-- Section 3: Success -->
+        <div id="success-container" class="section">
+            <div class="success-icon">✅</div>
+            
+            <div class="success-box">
+                <h2>Attendance Marked Successfully!</h2>
+                
+                <div class="success-details">
+                    <p><strong>Student ID:</strong> <span id="success-student-id">-</span></p>
+                    <p><strong>Time:</strong> <span id="success-time">-</span></p>
+                    <p><strong>Method:</strong> MediaPipe Face Detection ✅</p>
+                    <p><strong>Status:</strong> ✅ Verified & Recorded</p>
+                </div>
+            </div>
+            
+            <p style="color: #666; margin: 20px 0;">
+                Your attendance has been securely recorded with MediaPipe face verification, 
+                liveness detection, and location tracking.
+            </p>
+            
+            <button id="reset-btn" onclick="resetForNewStudent()">
+                ➕ Mark Attendance for Another Student
+            </button>
+            
+            <button class="btn-secondary" onclick="window.location.href='register.html'">
+                👤 Register New Student
+            </button>
+        </div>
+        
+        <div class="footer">
+            🔐 Secure • 🚫 Anti-Spoofing • 📍 Location Verified • 🎯 Fraud-Proof • ⚡ MediaPipe Powered
+        </div>
+    </div>
+    
+    <!-- External JavaScript -->
+    <script src="attendance.js"></script>
+</body>
+</html>
