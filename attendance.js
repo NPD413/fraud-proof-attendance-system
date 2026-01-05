@@ -1,6 +1,6 @@
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAMYXUdtt2I_xbasZxoNfcMI0bm5HYHgnA",
+    apiKey: "YOUR_API_KEY",
     authDomain: "smart-attendance-system-f600b.firebaseapp.com",
     projectId: "smart-attendance-system-f600b",
     storageBucket: "smart-attendance-system-f600b.firebasestorage.app",
