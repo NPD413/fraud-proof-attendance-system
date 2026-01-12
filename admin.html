@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Smart Attendance</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="style.css?v=cosmic">
+
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-content h3 {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .stat-content p {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 5px;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .feed-container {
+            width: 100%;
+            max-width: 1200px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            color: var(--accent);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.95rem;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-verified {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+
+        .status-fraud {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: black;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 0 20px var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: transform 0.3s;
+        }
+
+        .refresh-btn:hover {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" style="max-width: 1200px;">
+        <header class="header">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <h1>Admin Dashboard</h1>
+                <button onclick="handleLogout()" class="btn btn-secondary"
+                    style="font-size:0.8rem; padding:8px 16px;">Logout</button>
+            </div>
+            <p class="subtitle">Real-Time Surveillance & Analytics</p>
+        </header>
+
+        <!-- Stats Row -->
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <h3>Total Students</h3>
+                    <p id="total-students">--</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <h3>Attendance Today</h3>
+                    <p id="total-attendance">--</p>
+                </div>
+            </div>
+            <div class="stat-card" style="border-color: #ef4444;">
+                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.2);">🚨</div>
+                <div class="stat-content">
+                    <h3>Fraud Alerts</h3>
+                    <p id="total-fraud" style="color: #ef4444;">--</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Feed -->
+        <div class="card" style="padding: 0; background: transparent; border: none; box-shadow: none;">
+            <h2 class="card-title">📡 Live Attendance Feed</h2>
+            <div class="feed-container">
+                <table id="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Student ID</th>
+                            <th>Location</th>
+                            <th>Device ID (Short)</th>
+                            <th>Security Status</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feed-body">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding: 20px;">Loading Live Data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="location.reload()">↻</button>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMYXUdtt2I_xbasZxoNfcMI0bm5HYHgnA",
+            authDomain: "smart-attendance-system-f600b.firebaseapp.com",
+            projectId: "smart-attendance-system-f600b",
+            storageBucket: "smart-attendance-system-f600b.firebasestorage.app",
+            messagingSenderId: "881067387212",
+            appId: "1:881067387212:web:5b5b99461a4d15804607e9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // AUTH GUARD: Redirect if not logged in
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                window.location.href = 'login.html';
+            }
+        });
+
+        function handleLogout() {
+            auth.signOut().then(() => window.location.href = 'login.html');
+        }
+
+        // Listen for stats
+        async function fetchStats() {
+            // Count students
+            const sSnap = await db.collection('students').get();
+            document.getElementById('total-students').textContent = sSnap.size;
+
+            // Count attendance today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Note: In real app, you'd want a dedicated stats document to avoid reading all docs
+            // For demo, this is fine
+            db.collection('attendance')
+                .where('timestamp', '>=', today)
+                .orderBy('timestamp', 'desc')
+                .onSnapshot(snap => {
+                    document.getElementById('total-attendance').textContent = snap.size;
+
+                    const tbody = document.getElementById('feed-body');
+                    if (snap.empty) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No records today</td></tr>';
+                        return;
+                    }
+
+                    let fraudCount = 0;
+                    tbody.innerHTML = '';
+
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        const time = data.timestamp ? data.timestamp.toDate().toLocaleTimeString() : 'Just now';
+                        const loc = data.location && data.location.latitude
+                            ? `${data.location.latitude.toFixed(4)}, ${data.location.longitude.toFixed(4)}`
+                            : 'Unknown';
+                        const dev = data.security && data.security.fingerprint
+                            ? data.security.fingerprint.substring(0, 8)
+                            : '---';
+
+                        let status = '<span class="status-badge status-verified">Verified</span>';
+                        if (data.fraudFlag) {
+                            fraudCount++;
+                            status = `<span class="status-badge status-fraud">⚠️ ${data.fraudReason || 'FRAUD'}</span>`;
+                        }
+
+                        // Fake score info if not present (for demo visual)
+                        const score = data.security && data.security.biometricScore
+                            ? data.security.biometricScore
+                            : 'N/A';
+
+                        const row = `
+                            <tr>
+                                <td>${time}</td>
+                                <td style="font-weight:bold; color:var(--accent);">${data.studentId}</td>
+                                <td>${loc}</td>
+                                <td style="font-family:monospace; color:var(--text-dim);">${dev}</td>
+                                <td>${status}</td>
+                                <td>${score}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+
+                    document.getElementById('total-fraud').textContent = fraudCount;
+                });
+        }
+
+        fetchStats();
+    </script>
+</body>
+
+</html>

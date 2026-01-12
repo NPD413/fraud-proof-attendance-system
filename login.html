@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Smart Attendance</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="style.css?v=cosmic">
+</head>
+
+<body>
+    <div id="toast-container"></div>
+
+    <div class="container" style="max-width: 400px; min-height: 80vh; justify-content: center;">
+        <header class="header">
+            <div class="header-logo">
+                <span style="font-size: 3rem;">🔐</span>
+            </div>
+            <h1>Admin Access</h1>
+            <p class="subtitle">Secure Staff Login</p>
+        </header>
+
+        <div class="card">
+            <div class="input-group">
+                <label class="input-label">Email</label>
+                <input type="email" id="email" placeholder="admin@college.edu">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Password</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+
+            <div class="input-group" id="confirm-pass-group" style="display: none;">
+                <label class="input-label">Confirm Password</label>
+                <input type="password" id="confirm-password" placeholder="••••••••">
+            </div>
+
+            <button id="login-btn" class="btn btn-primary" onclick="handleLogin()">
+                Login →
+            </button>
+            <button id="signup-btn" class="btn btn-secondary" onclick="toggleSignup()"
+                style="margin-top: 10px; font-size: 0.8rem; background: transparent; border: 1px solid var(--glass-border);">
+                Create First Admin Account
+            </button>
+        </div>
+
+        <p style="text-align: center; margin-top: 20px;">
+            <a href="index.html" style="color: var(--text-dim); text-decoration: none;">← Back to Kiosk</a>
+        </p>
+    </div>
+
+    <script>
+        // Toast
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideInRight 0.4s reverse forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
+        }
+
+        // Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMYXUdtt2I_xbasZxoNfcMI0bm5HYHgnA",
+            authDomain: "smart-attendance-system-f600b.firebaseapp.com",
+            projectId: "smart-attendance-system-f600b",
+            storageBucket: "smart-attendance-system-f600b.firebasestorage.app",
+            messagingSenderId: "881067387212",
+            appId: "1:881067387212:web:5b5b99461a4d15804607e9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Check if already logged in
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Fix: If user is anonymous (no email), log them out to force proper auth
+                if (!user.email) {
+                    console.warn("Anonymous user detected. Signing out...");
+                    auth.signOut();
+                    return;
+                }
+
+                // Fix: Don't auto-redirect (prevents loops). Show status instead.
+                showToast(`Logged in as ${user.email}`, "success");
+
+                // Change UI to "Logged In" state
+                document.querySelector('.header h1').textContent = "Welcome Back";
+                document.querySelector('.header .subtitle').textContent = user.email;
+                document.getElementById('email').style.display = 'none';
+                document.getElementById('password').style.display = 'none';
+                document.getElementById('confirm-pass-group').style.display = 'none';
+
+                const btn = document.getElementById('login-btn');
+                btn.textContent = "Go to Admin Dashboard →";
+                btn.onclick = () => location.href = 'admin.html';
+
+                const logoutBtn = document.getElementById('signup-btn');
+                logoutBtn.textContent = "Logout";
+                logoutBtn.onclick = () => auth.signOut().then(() => location.reload());
+            }
+        });
+
+        let isSignup = false;
+
+        function toggleSignup() {
+            isSignup = !isSignup;
+            const btn = document.getElementById('login-btn');
+            const toggle = document.getElementById('signup-btn');
+            const confirm = document.getElementById('confirm-pass-group');
+
+            if (isSignup) {
+                btn.textContent = "Create Admin Account";
+                toggle.textContent = "Already have an account? Login";
+                confirm.style.display = 'block';
+            } else {
+                btn.textContent = "Login →";
+                toggle.textContent = "Create First Admin Account";
+                confirm.style.display = 'none';
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('password').value;
+            const btn = document.getElementById('login-btn');
+
+            if (!email || !pass) return showToast("Please enter credentials", "warning");
+
+            btn.disabled = true;
+            btn.textContent = "Processing...";
+
+            try {
+                if (isSignup) {
+                    const confirm = document.getElementById('confirm-password').value;
+                    if (pass !== confirm) throw new Error("Passwords do not match");
+
+                    await auth.createUserWithEmailAndPassword(email, pass);
+                    showToast("Account Created! Redirecting...", "success");
+                } else {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                    showToast("Login Successful", "success");
+                }
+
+                setTimeout(() => location.href = 'admin.html', 1000);
+
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, 'error');
+                btn.disabled = false;
+                btn.textContent = isSignup ? "Create Admin Account" : "Login →";
+            }
+        }
+    </script>
+</body>
+
+</html>

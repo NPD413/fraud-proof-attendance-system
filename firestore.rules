@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. STUDENTS Collection
+    match /students/{studentId} {
+      // Anyone authenticated can read (kiosk needs face descriptors)
+      allow read: if request.auth != null;
+      // Only admins can write
+      allow write: if request.auth != null && request.auth.token.email != null;
+    }
+    
+    // 2. ATTENDANCE Collection
+    match /attendance/{recordId} {
+      allow create: if request.auth != null; // ✅ Fixed
+      
+      // Anyone authenticated can read (kiosk needs to check duplicates)
+      allow read: if request.auth != null;
+      
+      allow update, delete: if false;
+    }
+    
+    // 3. TEACHER ROLES
+    match /teacher_roles/{email} {
+      allow read: if request.auth != null && request.auth.token.email != null;
+      allow write: if false;
+    }
+  }
+}

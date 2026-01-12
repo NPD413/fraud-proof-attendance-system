@@ -1,188 +1,91 @@
-# 🎯 Fraud-Proof Smart Attendance System
+# 🛡️ Secure AI Attendance System (SaaS)
 
-A web-based attendance system that uses **facial recognition**, **liveness detection**, and **location tracking** to ensure secure and fraud-proof attendance marking for educational institutions.
+A high-security, fraud-proof biometric attendance system built for Universities and Corporate environments. 
+It uses **Client-Side AI** to verify identity, liveliness, and location without expensive server-side processing.
 
----
-
-## 🌟 Project Overview
-
-Traditional attendance systems are vulnerable to proxy attendance and identity fraud. This system addresses these challenges by implementing multiple layers of verification:
-
-- **Face Recognition**: Compares live camera feed with registered student photos
-- **Liveness Detection**: Ensures a real person is present (not a photo or video)
-- **Location Tracking**: Records GPS coordinates to verify physical presence
-- **Device Fingerprinting**: Tracks unique device identifiers to prevent multiple logins
-- **Duplicate Prevention**: Blocks multiple attendance entries per day
+> **🔴 Live Demo**: [https://smart-attendance-system-f600b.web.app/facedetector.html](https://smart-attendance-system-f600b.web.app/facedetector.html)
 
 ---
 
-## ✨ Key Features
+## 🚀 Key Features
 
-### For Students
-- ✅ Simple ID-based login
-- ✅ Real-time face verification
-- ✅ Automatic attendance marking
-- ✅ Instant confirmation with timestamp
-- ✅ Mobile and desktop compatible
+### 1. 🧠 AI Biometric Verification
+- **FaceAPI.js**: Matches student faces against a secure encrypted database (Firestore).
+- **Strict Thresholds**: Tuned to **40%** (Euclidean Distance ~0.6) to balance security while allowing cross-device verification (Laptop Registration -> Mobile Check-in).
 
-### For Administrators
-- ✅ Easy student registration portal
-- ✅ Multi-angle photo capture (3 photos per student)
-- ✅ Centralized database management
-- ✅ Real-time attendance tracking
-- ✅ View attendance records with location data
+### 2. 👁️ Universal Liveness Detection (v2.5)
+- **Problem**: Static photos or videos could spoof older systems.
+- **Solution**: Implements **Dynamic Relative Calibration**.
+    - Learns the user's specific "Resting Eye Openness" in 1 second.
+    - Requires **Two Intentional Blinks** relative to *their* baseline.
+    - Works on all eye shapes, lighting conditions, and camera angles (Universal).
 
-### Security Features
-- 🔒 **65% similarity threshold** for face matching
-- 🔒 **Pixel-based image comparison** algorithm
-- 🔒 **Blink detection** for liveness verification
-- 🔒 **Device fingerprinting** using hardware specs
-- 🔒 **GPS verification** with accuracy tracking
-- 🔒 **One attendance per day** per student
+### 3. 📍 Intelligent Geofencing
+- **Hybrid Location**: Uses **WiFi/Cell Triangulation** (Fast) instead of just GPS.
+- **Radius Check**: Users must be within **30km** of the Campus Center (Bangalore).
+- **Anti-Spoofing**: Blocks VPNs/Proxies by cross-referencing IP location (optional) and demanding high-confidence browser coordinates.
+
+### 4. 🔒 Device & Network Security
+- **Anonymous Auth Guard**: Mobile devices must authenticate via Firebase Anonymous Auth to access the database (prevents unauthorized scraping).
+- **Session Locking**: Prevents "Buddy Punching" by locking a Student ID for 5 minutes after 20 failed attempts.
+- **100% Client-Side**: No cloud functions required. Operates on the Edge using the user's device power.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend**: HTML5, CSS3 (Glassmorphism UI), Vanilla JavaScript
+- **AI Models**: 
+    - `face-api.js` (Face Recognition)
+    - `MediaPipe Face Mesh` (Liveness/Blink Detection)
+- **Backend (Serverless)**: 
+    - **Firebase Authentication** (Anonymous + Email/Pass)
+    - **Firebase Firestore** (NoSQL Database)
+    - **Firebase Hosting** (SSL Secured)
 
 ---
 
-## 🚀 Live Demo
+## ⚙️ Setup & Deployment
 
-**🌐 Student Attendance Portal:**  
-👉 https://smart-attendance-system-f600b.web.app
+### 1. Prerequisites
+- Node.js installed.
+- Firebase CLI (`npm install -g firebase-tools`).
 
-**👨‍💼 Admin Registration Portal:**  
-👉 https://smart-attendance-system-f600b.web.app/register.html
-
-**🎥 Camera Test Page:**  
-👉 https://smart-attendance-system-f600b.web.app/test-camera.html
-
----
-# Fraud-Proof Smart Attendance System
-
-This project uses **facial recognition**, **liveness detection**, and **location tracking** to create a secure, fraud-proof attendance system for educational institutions. It includes a Firebase-hosted web application that allows students to mark attendance using face verification in real-time.
-
-## Live Demo
-
-You can access the live application here:
-
-**[Fraud-Proof Attendance System](https://smart-attendance-system-f600b.web.app)**
-
-**[Admin Registration Portal](https://smart-attendance-system-f600b.web.app/register.html)**
-
-## Features
-
-- **Face Recognition**: Compares live camera feed with registered student photos using pixel-based similarity algorithm
-- **Liveness Detection**: Ensures a real person is present through blink detection (prevents photo/video spoofing)
-- **Location Tracking**: Records GPS coordinates to verify physical presence on campus
-- **Device Fingerprinting**: Tracks unique device identifiers to prevent multiple logins
-- **Duplicate Prevention**: Blocks multiple attendance entries per day per student
-- **Real-time Verification**: Instant attendance marking with timestamp
-- **Admin Portal**: Easy student registration with multi-angle photo capture
-
-## Getting Started
-
-Follow these instructions to get a copy of the project up and running on your local machine.
-
-### Prerequisites
-
-You will need to have the following installed on your system:
-
-- **Node.js** - Download from [nodejs.org](https://nodejs.org/)
-- **Firebase CLI** - Install via npm: `npm install -g firebase-tools`
-- **Firebase Account** - Create one at [firebase.google.com](https://firebase.google.com)
-- **Modern Browser** - Chrome or Edge (for Face Detection API support)
-
-### Installation
-
-1. **Clone the repository:**
-
+### 2. Installation
 ```bash
-git clone https://github.com/YOUR_USERNAME/fraud-attendance-system.git
-cd fraud-attendance-system
-Login to Firebase:
+git clone <repo-url>
+cd fraud_attendance_detector
+npm install
+```
 
-bash
-firebase login
-Initialize Firebase (if needed):
+### 3. Firebase Configuration
+1.  Create a project at [Firebase Console](https://console.firebase.google.com/).
+2.  Enable **Firestore** and **Authentication** (Anonymous + Email).
+3.  Update `attendance.js` with your config keys.
+4.  **Critical**: Apply these Firestore Rules:
+    ```javascript
+    match /students/{studentId} {
+      allow read: if request.auth != null; // Kiosk Access
+      allow write: if request.auth != null && request.auth.token.email != null; // Admin Only
+    }
+    ```
 
-bash
-firebase init hosting
-Select your Firebase project
+### 4. Deploy
+```bash
+firebase deploy --only "hosting,firestore:rules"
+```
 
-Set public as the public directory
+---
 
-Configure as a single-page app: No
+## 📱 Mobile Compatibility
+- **Supported**: Android (Chrome), iOS (Safari/Chrome).
+- **iOS Note**: If "Location Denied" appears, go to `Settings -> Privacy -> Location -> Safari` and select **"While Using App"**.
 
-Set up automatic builds with GitHub: No (optional)
+---
 
-Deploy to Firebase:
+## 👨‍💻 Admin Console
+- **URL**: `/login.html`
+- **Features**: Register new students, view raw attendance logs, manage security rules.
 
-bash
-firebase deploy
-
-How It Works
-Student Attendance Flow:
-Student enters ID → System fetches registered photos from Firebase Firestore
-
-Camera opens → Live video stream starts
-
-Face detection → Algorithm locates face in frame
-
-Liveness check → Blink detection to prevent spoofing
-
-Face comparison → Current face compared with stored photos (pixel-based similarity)
-
-Threshold check → If similarity ≥ 65%, proceed; else reject as unauthorized
-
-Location capture → GPS coordinates recorded
-
-Device verification → Device fingerprint generated
-
-Duplicate check → Verify no attendance marked today
-
-Mark attendance → Record saved to Firebase with timestamp ✅
-
-Face Verification Algorithm:
-javascript
-1. Capture current frame from webcam
-2. Extract face region using detected bounding box
-3. Resize to 64x64 pixels for comparison
-4. Compare with each registered photo:
-   - Convert to grayscale
-   - Calculate pixel-by-pixel difference
-   - Compute similarity percentage
-5. If any photo matches ≥ 65%, approve
-6. Else, reject as unauthorized person
-Model Training
-The face verification uses a pixel-based image comparison algorithm:
-
-Input: Live camera frame + 3 registered photos per student
-
-Processing:
-
-Resize images to 64x64 pixels
-
-Convert to grayscale
-
-Calculate Manhattan distance between pixels
-
-Convert to similarity percentage
-
-Threshold: 65% similarity = match
-
-Output: Verified (Green box) or Unauthorized (Red box)
-
-Firebase Database Structure
-Students Collection
-javascript
-{
-  "STU001": {
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "1234567890",
-    department: "Computer Science",
-    photos: [
-      "data:image/jpeg;base64,...",
-      "data:image/jpeg;base64,...",
-      "data:image/jpeg;base64,..."
-    ],
-    registeredAt: Timestamp
-  }
-}
+---
+*Built with ❤️ for Secure Campus Attendance*

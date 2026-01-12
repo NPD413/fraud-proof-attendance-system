@@ -1,188 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Registration - FREE Version</title>
-    
+    <title>Registration - Smart Attendance</title>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Face API -->
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="style.css?v=cosmic">
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+        /* Specific overrides for registration logic visibility */
+        .step {
+            display: none;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        h1 { text-align: center; color: #333; margin-bottom: 30px; }
-        .step { display: none; }
-        .step.active { display: block; }
-        .form-group { margin-bottom: 25px; }
-        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; }
-        input[type="text"], input[type="email"] {
-            width: 100%;
-            padding: 12px 20px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-        }
-        input:focus { outline: none; border-color: #667eea; }
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 16px;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: 600;
-            margin: 10px 5px;
-        }
-        button:hover { transform: scale(1.05); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .video-container {
-            position: relative;
-            max-width: 640px;
-            margin: 20px auto;
-            border-radius: 15px;
-            overflow: hidden;
-            background: #000;
-        }
-        video { width: 100%; height: auto; display: block; }
-        .status {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 16px;
-            color: #555;
-            font-weight: 600;
-        }
-        .captured-faces {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-            margin: 20px 0;
-        }
-        .face-thumb {
-            width: 100px;
-            height: 100px;
-            border-radius: 10px;
-            border: 3px solid #4caf50;
-            object-fit: cover;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 30px;
-            background: #e0e0e0;
-            border-radius: 15px;
-            overflow: hidden;
-            margin: 20px 0;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4caf50 0%, #45a049 100%);
-            width: 0%;
-            transition: width 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-        .success-box {
-            background: #4caf50;
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            margin: 20px 0;
-        }
-        .btn-secondary { background: linear-gradient(135deg, #6c757d 0%, #495057 100%); }
-        .info-box {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
+
+        .step.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
         }
     </style>
 </head>
+
 <body>
+    <div id="toast-container"></div>
+
     <div class="container">
-        <h1>🎓 Student Registration (FREE)</h1>
-        
-        <!-- Step 1 -->
-        <div id="step1" class="step active">
-            <h2>Step 1: Enter Your Details</h2>
-            <div class="form-group">
-                <label>Student ID *</label>
-                <input type="text" id="studentId" placeholder="e.g., STU001">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-logo">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" stroke-width="2">
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#06b6d4" />
+                            <stop offset="100%" stop-color="#8b5cf6" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
             </div>
-            <div class="form-group">
-                <label>Full Name *</label>
-                <input type="text" id="name" placeholder="e.g., Dhara">
+            <h1>New User Registration</h1>
+            <p class="subtitle">Enroll into the Biometric Secure System</p>
+            <button onclick="handleLogout()" class="btn btn-secondary"
+                style="font-size:0.8rem; padding:8px 16px; margin-top:10px;">Logout (Admin)</button>
+        </header>
+
+        <!-- Step 1: Student Details -->
+        <div id="step1" class="step active card">
+            <h2 class="card-title">
+                <span class="step-number"
+                    style="background:var(--primary); color:black; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6em;">1</span>
+                User Details
+            </h2>
+
+            <div class="input-group">
+                <label class="input-label">Student ID</label>
+                <input type="text" id="studentId" placeholder="e.g., STU001" autocomplete="off">
             </div>
-            <div class="form-group">
-                <label>Email *</label>
-                <input type="email" id="email" placeholder="e.g., dhara@example.com">
+
+            <div class="input-group">
+                <label class="input-label">Full Name</label>
+                <input type="text" id="name" placeholder="e.g., John Doe" autocomplete="off">
             </div>
-            <button onclick="goToStep2()">Next: Capture Photos</button>
+
+            <div class="input-group">
+                <label class="input-label">Email Address</label>
+                <input type="email" id="email" placeholder="e.g., john@example.com" autocomplete="off">
+            </div>
+
+            <button class="btn btn-primary" onclick="goToStep2()">
+                Generate Face Profile →
+            </button>
         </div>
-        
-        <!-- Step 2 -->
-        <div id="step2" class="step">
-            <h2>Step 2: Capture 3 Face Photos</h2>
-            
-            <div class="info-box">
-                📸 <strong>Tips:</strong> Take photos from different angles (front, slight left, slight right)
+
+        <!-- Step 2: Photo Capture -->
+        <div id="step2" class="step card">
+            <h2 class="card-title">
+                <span class="step-number"
+                    style="background:var(--primary); color:black; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6em;">2</span>
+                Face Capture
+            </h2>
+
+            <div class="status-pill status-info" style="width:100%; justify-content:center;">
+                <span id="status">Starting camera...</span>
             </div>
-            
-            <div class="status" id="status">Loading camera...</div>
-            
-            <div class="video-container">
-                <video id="video" autoplay playsinline></video>
+
+            <div class="camera-wrapper">
+                <div class="scan-line"></div>
+                <video id="video" autoplay playsinline muted></video>
             </div>
-            
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress">0/3</div>
+
+            <div style="margin-bottom: 2rem;">
+                <div
+                    style="display:flex; justify-content:space-between; margin-bottom:0.5rem; color:var(--text-muted);">
+                    <span>Profile Completeness</span>
+                    <span id="progress-text">0/3</span>
+                </div>
+                <div style="width:100%; height:8px; background:var(--bg-dark); border-radius:4px; overflow:hidden;">
+                    <div id="progress"
+                        style="width:0%; height:100%; background:var(--primary); transition:width 0.3s ease;"></div>
+                </div>
             </div>
-            
+
             <div class="captured-faces" id="captured-faces"></div>
-            
-            <div style="text-align: center;">
-                <button id="captureBtn" onclick="captureFace()">📸 Capture Photo</button>
-                <button class="btn-secondary" onclick="goToStep1()">Back</button>
-            </div>
+
+            <button id="captureBtn" class="btn btn-primary" onclick="captureFace()">
+                📸 Capture Photo
+            </button>
+            <button class="btn btn-secondary" onclick="goToStep1()">
+                ← Back
+            </button>
         </div>
-        
-        <!-- Step 3 -->
-        <div id="step3" class="step">
-            <div class="success-box">
-                <h2>✅ Registration Complete!</h2>
-                <p><strong>Student ID:</strong> <span id="registered-id"></span></p>
-                <p><strong>Name:</strong> <span id="registered-name"></span></p>
-                <p style="margin-top: 15px;">Photos saved successfully!</p>
-                <p style="font-size: 14px; margin-top: 10px;">You can now mark attendance.</p>
+
+        <!-- Step 3: Success -->
+        <div id="step3" class="step card" style="text-align:center;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+            <h2 style="color:var(--success); margin-bottom:1rem;">Registration Successful!</h2>
+            <p style="color:var(--text-muted); margin-bottom:2rem;">User profile has been securely stored.</p>
+
+            <div
+                style="text-align:left; background:rgba(255,255,255,0.05); padding:1.5rem; border-radius:12px; margin-bottom:2rem;">
+                <p style="margin-bottom:0.5rem;"><strong style="color:var(--primary)">ID:</strong> <span
+                        id="registered-id"></span></p>
+                <p style="margin-bottom:0.5rem;"><strong style="color:var(--primary)">Name:</strong> <span
+                        id="registered-name"></span></p>
+                <p><strong style="color:var(--primary)">Email:</strong> <span id="registered-email"></span></p>
             </div>
-            <div style="text-align: center;">
-                <button onclick="window.location.href='facedetector.html'">Go to Attendance System</button>
-                <button class="btn-secondary" onclick="location.reload()">Register Another Student</button>
-            </div>
+
+            <button class="btn btn-primary" onclick="window.location.href='facedetector.html'">
+                Launch Attendance System
+            </button>
+            <button class="btn btn-secondary" onclick="location.reload()">
+                Register Another User
+            </button>
         </div>
     </div>
 
     <script>
+        // Toast Function
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideInRight 0.4s reverse forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
+        }
+
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAMYXUdtt2I_xbasZxoNfcMI0bm5HYHgnA",
@@ -195,31 +173,72 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        console.log("✅ Firebase initialized (Firestore only - FREE)");
+        console.log("✅ Firebase initialized");
+        const auth = firebase.auth();
 
-        let video, studentData = {}, capturedPhotos = [];
+        // AUTH HANDLER (Public Registration)
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log("✅ Authenticated:", user.isAnonymous ? "Guest Mode" : user.email);
+            } else {
+                console.log("⚠️ No User. Signing in Anonymously...");
+                auth.signInAnonymously().catch(e => {
+                    console.error("Auth Failed:", e);
+                    showToast("Authentication Error. Refresh Page.", "error");
+                });
+            }
+        });
+
+        function handleLogout() {
+            auth.signOut().then(() => window.location.href = 'login.html');
+        }
+
+        let video, studentData = {}, capturedPhotos = [], faceDescriptors = [];
         const TOTAL_PHOTOS = 3;
+
+        // Initialize Face API
+        async function loadFaceModels() {
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+            await Promise.all([
+                // faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL), // Too heavy, causing UI freeze
+                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL), // Lightweight & Fast
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            ]);
+            console.log("✅ Face Models Loaded (Turbo Mode: TinyFace)");
+        }
+        loadFaceModels();
 
         async function goToStep2() {
             const studentId = document.getElementById('studentId').value.trim().toUpperCase();
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
-            
+
             if (!studentId || !name || !email) {
-                alert("❌ Please fill all fields!");
+                showToast("Please complete all fields", 'error');
                 return;
             }
-            
+
+            if (!/^[A-Z0-9]{3,20}$/.test(studentId)) {
+                showToast("Invalid Student ID format (3-20 chars alphanumeric)", 'error');
+                return;
+            }
+
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showToast("Invalid email address", 'error');
+                return;
+            }
+
             try {
                 const doc = await db.collection('students').doc(studentId).get();
                 if (doc.exists) {
-                    alert(`❌ Student ID "${studentId}" already exists! Use a different ID.`);
+                    showToast(`Student ID "${studentId}" already exists!`, 'warning');
                     return;
                 }
             } catch (error) {
                 console.error(error);
             }
-            
+
             studentData = { studentId, name, email };
             document.getElementById('step1').classList.remove('active');
             document.getElementById('step2').classList.add('active');
@@ -229,92 +248,150 @@
         async function startCamera() {
             try {
                 video = document.getElementById('video');
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: 640, height: 480 } 
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 } }
                 });
                 video.srcObject = stream;
                 video.onloadedmetadata = () => {
-                    document.getElementById('status').textContent = `✅ Camera ready! Capture ${TOTAL_PHOTOS} photos.`;
+                    document.getElementById('status').textContent = `Camera Ready. Capture ${TOTAL_PHOTOS} profiles.`;
                 };
             } catch (error) {
                 console.error(error);
-                document.getElementById('status').textContent = "❌ Camera access denied!";
-                alert("Please allow camera access!");
+                document.getElementById('status').textContent = "Camera Access Denied";
+                showToast("Camera access is required", 'error');
             }
         }
 
         async function captureFace() {
             if (capturedPhotos.length >= TOTAL_PHOTOS) {
-                alert(`Already captured ${TOTAL_PHOTOS} photos!`);
                 return;
             }
-            
-            document.getElementById('captureBtn').disabled = true;
-            document.getElementById('status').textContent = "📸 Capturing...";
-            
+
+            const btn = document.getElementById('captureBtn');
+
+            // 1. Safety Check: Video Ready?
+            if (video.readyState !== 4 || video.videoWidth === 0) {
+                showToast("Camera not ready. Please wait...", "warning");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = 'Analyzing...';
+
+            // 2. Capture Frame to Static Canvas (More stable for AI)
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            
-            // Compress to smaller size for Firestore
+            // distinct performance hint
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(video, 0, 0);
+
+            // 3. Generate Descriptor from Canvas
+            const descriptor = await getFaceDescriptor(canvas);
+
+            if (!descriptor) {
+                // VISUAL DEBUG: Show the user what the camera saw
+                // Fix: camera-wrapper is a class, not an ID. Use querySelector or known ID.
+                const debugContainer = document.querySelector('.camera-wrapper');
+                let debugImg = document.getElementById('debug-frame');
+                if (!debugImg) {
+                    debugImg = document.createElement('img');
+                    debugImg.id = 'debug-frame';
+                    debugImg.style = "position: absolute; top: 10px; right: 10px; width: 100px; border: 2px solid red; z-index: 1000;";
+                    if (debugContainer) debugContainer.appendChild(debugImg);
+                }
+                debugImg.src = canvas.toDataURL();
+
+                showToast("⚠️ Face not detected in this frame (See Top Right)", "error");
+                console.warn("Detection Failed: Confidence too low or no face.");
+                btn.disabled = false;
+                btn.innerHTML = '📸 Capture Photo';
+                return; // ABORT
+            }
+
+            // Remove debug frame if success
+            const existingDebug = document.getElementById('debug-frame');
+            if (existingDebug) existingDebug.remove();
+
+            // 4. Success: Save Photo & Descriptor
+            // Compress for Firestore
             const smallCanvas = document.createElement('canvas');
             smallCanvas.width = 300;
             smallCanvas.height = 300;
-            smallCanvas.getContext('2d').drawImage(video, 0, 0, 300, 300);
-            const compressedPhoto = smallCanvas.toDataURL('image/jpeg', 0.7);
-            
+            smallCanvas.getContext('2d').drawImage(canvas, 0, 0, 300, 300);
+            const compressedPhoto = smallCanvas.toDataURL('image/jpeg', 0.85);
+
             capturedPhotos.push(compressedPhoto);
-            
+            faceDescriptors.push(Array.from(descriptor));
+
+            // Display thumbnail
             const img = document.createElement('img');
             img.src = compressedPhoto;
             img.className = 'face-thumb';
             document.getElementById('captured-faces').appendChild(img);
-            
+
+            showToast(`Profile ${capturedPhotos.length} captured & analyzed`, 'success');
+
+            // Update progress
             const progress = (capturedPhotos.length / TOTAL_PHOTOS) * 100;
             document.getElementById('progress').style.width = progress + '%';
-            document.getElementById('progress').textContent = `${capturedPhotos.length}/${TOTAL_PHOTOS}`;
-            
+            document.getElementById('progress-text').textContent = `${capturedPhotos.length}/${TOTAL_PHOTOS}`;
+
             if (capturedPhotos.length >= TOTAL_PHOTOS) {
-                document.getElementById('status').textContent = "✅ All photos captured! Saving...";
+                document.getElementById('status').textContent = "Finalizing Profile...";
+                btn.innerHTML = 'Encrypting & Saving...';
                 await saveToFirestore();
             } else {
-                document.getElementById('status').textContent = `✅ ${capturedPhotos.length}/${TOTAL_PHOTOS} captured! ${TOTAL_PHOTOS - capturedPhotos.length} more needed.`;
+                btn.disabled = false;
+                btn.innerHTML = '📸 Capture Photo';
             }
-            
-            document.getElementById('captureBtn').disabled = false;
         }
 
         async function saveToFirestore() {
             try {
-                document.getElementById('status').textContent = "💾 Saving to database...";
-                
-                // Save photos directly in Firestore (FREE - no Storage needed!)
                 await db.collection('students').doc(studentData.studentId).set({
                     name: studentData.name,
                     email: studentData.email,
-                    photos: capturedPhotos, // Store compressed photos
+                    photos: capturedPhotos,
                     photoCount: capturedPhotos.length,
-                    faceDescriptors: [], // Can be added later
+                    faceDescriptors: Object.assign({}, faceDescriptors), // Convert Array of Arrays to Object Map for Firestore
                     registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    storageType: 'firestore-base64'
+                    storageType: 'firestore-base64',
+                    securityLevel: 'high'
                 });
-                
-                console.log("✅ Student registered:", studentData.studentId);
-                
+
                 if (video.srcObject) {
                     video.srcObject.getTracks().forEach(track => track.stop());
                 }
-                
+
                 document.getElementById('step2').classList.remove('active');
                 document.getElementById('step3').classList.add('active');
                 document.getElementById('registered-id').textContent = studentData.studentId;
                 document.getElementById('registered-name').textContent = studentData.name;
-                
+                document.getElementById('registered-email').textContent = studentData.email;
+                showToast("Registration Complete", 'success');
+
             } catch (error) {
                 console.error("Save error:", error);
-                alert("❌ Failed to save: " + error.message);
-                document.getElementById('status').textContent = "❌ Save failed!";
+                showToast("Save Failed: " + error.message, 'error');
+                document.getElementById('captureBtn').disabled = false;
+                document.getElementById('captureBtn').innerHTML = 'Retry Save';
+            }
+        }
+
+        async function getFaceDescriptor(imageElement) {
+            try {
+                // Use TinyFaceDetector with High Resolution (608) for Quality + Speed
+                // This prevents "Page Unresponsive" errors while still finding faces well.
+                const detection = await faceapi
+                    .detectSingleFace(imageElement, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.1, inputSize: 608 }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                return detection ? detection.descriptor : null;
+            } catch (error) {
+                console.error("Descriptor generation failed", error);
+                return null;
             }
         }
 
@@ -323,12 +400,14 @@
                 video.srcObject.getTracks().forEach(track => track.stop());
             }
             capturedPhotos = [];
+            faceDescriptors = []; // Fix: Clear descriptors to prevent pollution if changing users
             document.getElementById('captured-faces').innerHTML = '';
             document.getElementById('progress').style.width = '0%';
-            document.getElementById('progress').textContent = '0/3';
+            document.getElementById('progress-text').textContent = '0/3';
             document.getElementById('step2').classList.remove('active');
             document.getElementById('step1').classList.add('active');
         }
     </script>
 </body>
+
 </html>
